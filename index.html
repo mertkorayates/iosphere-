@@ -28,11 +28,26 @@
       text-align: center;
     }
 
+    .conversion-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
     input {
       padding: 10px;
-      font-size: 16px;
-      width: 150px;
-      margin-bottom: 20px;
+      font-size: 18px;
+      width: 100px;
+      text-align: center;
+    }
+
+    .unit-label, .equal-label {
+      font-size: 18px;
+      font-weight: 500;
+      color: #555;
     }
 
     .output {
@@ -44,10 +59,15 @@
       display: inline-block;
       margin-top: 10px;
     }
+
+    .downlink-label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+    }
   </style>
 </head>
 <body>
-
 
   <div class="appbar">
     <img src="./logo.png" alt="Firma Logosu">
@@ -55,32 +75,74 @@
 
   <div class="container">
     <h2>Pulse → Downlink Oluşturucu</h2>
-    <label>Pulsa Karşılık Gelen Değer:</label><br>
-    <input type="number" id="pulseInput" placeholder="örn: 60" />
+
+    <div class="conversion-row">
+      <input type="text" id="waterInput" placeholder="100" />
+      <span class="unit-label">L</span>
+      <span class="equal-label">=</span>
+      <input type="text" id="pulseInput" placeholder="200" />
+      <span class="unit-label">Pulse</span>
+    </div>
+
     <div>
-      <strong>Downlink Komutu:</strong><br>
-      <div id="output" class="output">ffa2010a0000004c000000</div>
+      <span class="downlink-label">Downlink Komutu:</span><br>
+      <div id="output" class="output">ffa201000000004c000000</div>
     </div>
   </div>
 
   <script>
-    const input = document.getElementById("pulseInput");
+    const waterInput = document.getElementById("waterInput");
+    const pulseInput = document.getElementById("pulseInput");
     const output = document.getElementById("output");
 
-    input.addEventListener("input", () => {
-      const pulse = parseInt(input.value);
-      if (isNaN(pulse)) {
-        output.textContent = "ffa2010a0000004c000000";
+    function toLittleEndianHex(value) {
+      const scaled = value * 10;
+      const hex = scaled.toString(16).padStart(4, "0");
+      return hex.match(/../g).reverse().join("");
+    }
+
+    function updateOutput() {
+      const water = parseInt(waterInput.value);
+      const pulse = parseInt(pulseInput.value);
+
+      if (
+        isNaN(water) || isNaN(pulse) ||
+        water < 1 || water > 1000 ||
+        pulse < 1 || pulse > 1000
+      ) {
+        output.textContent = "ffa201000000004c000000";
         return;
       }
 
-      const pulseValue = pulse * 10;
-      const hex = pulseValue.toString(16).padStart(4, "0");
-      const le = hex.match(/../g).reverse().join("");
-      const downlink = "ffa2010a00" + le + "4c000000";
-
+      const waterHex = toLittleEndianHex(water);
+      const pulseHex = toLittleEndianHex(pulse);
+      const downlink = `ffa201${waterHex}${pulseHex}4c000000`;
       output.textContent = downlink.toLowerCase();
-    });
+    }
+
+    function enforceInputLimits(e) {
+      const key = e.key;
+      // Rakam değilse engelle
+      if (!/^[0-9]$/.test(key)) {
+        e.preventDefault();
+        return;
+      }
+
+      // Şimdiki değere basılan tuşu ekle
+      const newValue = e.target.value + key;
+      const parsed = parseInt(newValue);
+
+      if (parsed > 1000 || parsed < 1) {
+        e.preventDefault();
+      }
+    }
+
+    waterInput.addEventListener("keypress", enforceInputLimits);
+    pulseInput.addEventListener("keypress", enforceInputLimits);
+
+    waterInput.addEventListener("input", updateOutput);
+    pulseInput.addEventListener("input", updateOutput);
   </script>
+
 </body>
 </html>
