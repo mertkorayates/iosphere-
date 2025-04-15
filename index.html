@@ -65,6 +65,13 @@
       margin-bottom: 5px;
       display: block;
     }
+
+    .section-title {
+      margin-top: 40px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -88,6 +95,22 @@
       <span class="downlink-label">Downlink Komutu:</span><br>
       <div id="output" class="output">ffa201000000004c000000</div>
     </div>
+
+    <hr style="margin: 60px 0; border: none; border-top: 1px solid #ccc;" />
+
+    <div class="conversion-row">
+      <input type="number" id="indexInput" placeholder="123456" min="0" max="4000000000" />
+      <span class="unit-label">Endeks</span>
+    </div>
+
+    <div>
+      <span class="downlink-label">Endeks Downlink:</span><br>
+      <div id="indexOutput" class="output">ff920100000000</div>
+    </div>
+    
+    <div style="margin-top: 60px; text-align: center; font-size: 16px; color: #b00020;">
+      ⚠️ Lütfen downlink komutlarını <strong>sıralı</strong> ve <strong>aralara zaman koyarak</strong> gönderin.
+    </div>
   </div>
 
   <script>
@@ -95,9 +118,11 @@
     const pulseInput = document.getElementById("pulseInput");
     const output = document.getElementById("output");
 
-    function toLittleEndianHex(value) {
-      const scaled = value * 10;
-      const hex = scaled.toString(16).padStart(4, "0");
+    const indexInput = document.getElementById("indexInput");
+    const indexOutput = document.getElementById("indexOutput");
+
+    function toLittleEndianHex(value, byteLength = 2) {
+      const hex = value.toString(16).padStart(byteLength * 2, "0");
       return hex.match(/../g).reverse().join("");
     }
 
@@ -120,15 +145,26 @@
       output.textContent = downlink.toLowerCase();
     }
 
+    function updateIndexOutput() {
+      const index = parseInt(indexInput.value);
+
+      if (isNaN(index) || index < 0 || index > 4000000000) {
+        indexOutput.textContent = "ff920100000000";
+        return;
+      }
+
+      const indexHex = toLittleEndianHex(index, 4); // 4 byte = 8 hex digit
+      const finalDownlink = `ff9201${indexHex}`;
+      indexOutput.textContent = finalDownlink.toLowerCase();
+    }
+
     function enforceInputLimits(e) {
       const key = e.key;
-      // Rakam değilse engelle
       if (!/^[0-9]$/.test(key)) {
         e.preventDefault();
         return;
       }
 
-      // Şimdiki değere basılan tuşu ekle
       const newValue = e.target.value + key;
       const parsed = parseInt(newValue);
 
@@ -139,9 +175,10 @@
 
     waterInput.addEventListener("keypress", enforceInputLimits);
     pulseInput.addEventListener("keypress", enforceInputLimits);
-
     waterInput.addEventListener("input", updateOutput);
     pulseInput.addEventListener("input", updateOutput);
+
+    indexInput.addEventListener("input", updateIndexOutput);
   </script>
 
 </body>
